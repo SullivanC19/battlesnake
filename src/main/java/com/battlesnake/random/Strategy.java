@@ -27,7 +27,7 @@ public class Strategy {
             && nextPos.y >= 0
             && nextPos.x < moveRequest.getWidth()
             && nextPos.y < moveRequest.getHeight()
-            && moveRequest.isOccupied(nextPos)) {
+            && !moveRequest.isOccupied(nextPos)) {
                 return move;
             }
         }
