@@ -67,7 +67,7 @@ public class Strategy {
 
     private static String backtrack(Position targetPos, Position start, Position[][] par) {
         Position temp = targetPos;
-        while (par[temp.x][temp.y] != start) {
+        while (!par[temp.x][temp.y].equals(start)) {
             temp = par[temp.x][temp.y];
         }
 
