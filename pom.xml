@@ -52,7 +52,7 @@
                     <arguments>
                         <argument>-classpath</argument>
                         <classpath/>
-                        <argument>com.battlesnake.random.Snake</argument>
+                        <argument>com.battlesnake.findfood.Snake</argument>
                     </arguments>
                 </configuration>
             </plugin>
@@ -85,7 +85,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.battlesnake.random.Snake
+                                        com.battlesnake.findfood.Snake
                                     </mainClass>
                                 </manifest>
                             </archive>
