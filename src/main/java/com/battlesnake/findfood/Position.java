@@ -45,4 +45,12 @@ public class Position {
     public boolean inBounds(int width, int height) {
         return x >= 0 && y >= 0 && x < width && y < height;
     }
+
+    public String toString() {
+        return "(" + x + ", " + y + ")";
+    }
+
+    public boolean equals(Position pos) {
+        return pos.x == x && pos.y == y;
+    }
 }
