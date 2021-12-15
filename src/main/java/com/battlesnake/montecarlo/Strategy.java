@@ -23,20 +23,28 @@ public class Strategy {
         Game game = moveRequest.getGame();
         Pathfinder pathfinder = new Pathfinder(game);
 
-        int bestEval = 0;
+
+        long start = System.currentTimeMillis();
+
+        List<Direction> moves = Arrays.asList(Direction.values());
+        Collections.shuffle(moves);
+        int bestEval = Integer.MIN_VALUE;
         String move = "right";
-        for (Direction dir : Direction.values()) {
-            game.step(dir);
+        for (Direction dir : moves) {
+            if (!game.step(dir)) continue;
             pathfinder.setSource(game.getHeadPos());
             pathfinder.setFloodFill(true);
             pathfinder.execute();
-            int eval = pathfinder.getAreaCovered();
+            int eval = pathfinder.getAreaCovered() - (game.getHealth() < 5 ? 0 : game.getLength());
+            LOG.info(eval + "");
             if (eval > bestEval) {
                 bestEval = eval;
                 move = dir.getMove();
             }
             game.backtrack();
         }
+
+        LOG.info("" + (System.currentTimeMillis() - start));
 
         return move;
     }

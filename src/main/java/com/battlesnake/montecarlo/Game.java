@@ -6,7 +6,6 @@ import java.util.Stack;
 
 public class Game {
     private int depth;
-    private boolean gameOver;
     private final int width, height;
 
     private Position headPos;
@@ -20,7 +19,6 @@ public class Game {
 
     public Game(JsonNode moveRequestObj) {
         this.depth = 0;
-        this.gameOver = false;
 
         this.width = moveRequestObj.get("board").get("width").asInt();
         this.height = moveRequestObj.get("board").get("height").asInt();
@@ -34,9 +32,13 @@ public class Game {
 
         initSnakeDepthOccupied(moveRequestObj.get("you"));
         initFood(moveRequestObj.get("board").get("food"));
+
+        this.moveStack = new Stack<>();
     }
 
     private void initSnakeDepthOccupied(JsonNode snakeObj) {
+        for (int x = 0; x < width; x++) for (int y = 0; y < height; y++) snakeDepthOccupied[x][y] = -1000;
+
         int i = 0;
         for (JsonNode posObj : snakeObj.get("body")) {
             int x = posObj.get("x").asInt();
@@ -65,6 +67,14 @@ public class Game {
         return headPos;
     }
 
+    public int getLength() {
+      return length;
+    }
+
+    public int getHealth() {
+      return health;
+    }
+
     public boolean isOccupied(Position pos) {
         return depth - snakeDepthOccupied[pos.x][pos.y] <= length;
     }
@@ -73,13 +83,10 @@ public class Game {
         return food[pos.x][pos.y];
     }
 
-    public void step(Direction dir) {
-        if (gameOver) return;
-
+    public boolean step(Direction dir) {
         Position nextHeadPos = headPos.move(dir);
         if (health == 0 || !nextHeadPos.inBounds(width, height) || isOccupied(nextHeadPos)) {
-            gameOver = true;
-            return;
+            return false;
         }
 
         Move move = new Move(dir,
@@ -89,6 +96,7 @@ public class Game {
 
         if (move.food) {
             health = 100;
+            length++;
             food[nextHeadPos.x][nextHeadPos.y] = false;
         } else {
             health--;
@@ -99,6 +107,8 @@ public class Game {
 
         moveStack.push(move);
         depth++;
+
+        return true;
     }
 
     public void backtrack() {
@@ -114,10 +124,6 @@ public class Game {
         headPos = headPos.move(lastMove.dir.opposite());
 
         depth--;
-    }
-
-    public boolean isGameOver() {
-        return gameOver;
     }
 
     private static class Move {
