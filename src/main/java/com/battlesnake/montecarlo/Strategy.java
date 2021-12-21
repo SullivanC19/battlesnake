@@ -25,7 +25,7 @@ public class Strategy {
 
     private static Direction[] getRandomValidDirectionsArray(Game game) {
         Direction[] directions = new Direction[game.getNumSnakes()];
-        for (int snakeIdx = 1; snakeIdx < game.getNumSnakes(); snakeIdx++) {
+        for (int snakeIdx = 0; snakeIdx < game.getNumSnakes(); snakeIdx++) {
             directions[snakeIdx] = Direction.RIGHT; // default;
             for (Direction dir : scrambledDirections()) {
                 Position nextPos = game.getHeadPos(snakeIdx).move(dir);
@@ -49,11 +49,11 @@ public class Strategy {
         String move = "right";
         for (Direction dir : scrambledDirections()) {
             int sum = 0;
-            for (int i = 0; i < 100; i++) {
+            for (int i = 0; i < 300; i++) {
                 Direction[] directions = getRandomValidDirectionsArray(game);
-                directions[0] = dir;
+                directions[game.getMySnakeIdx()] = dir;
                 game.step(directions);
-                sum += evalRandomPath(game, pathfinder, 1, 20);
+                sum += evalRandomPath(game, 1, 20);
                 game.backtrack();
             }
             if (sum > bestSum) {
@@ -62,41 +62,28 @@ public class Strategy {
             }
         }
 
-        LOG.info("" + (System.currentTimeMillis() - start));
+        LOG.info("time: " + (System.currentTimeMillis() - start));
 
         return move;
     }
 
-    public static int evalRandomPath(Game game, Pathfinder pathfinder, int depth, int maxDepth) {
-        if (!game.isAlive(0)) return -500;
-        if (depth == maxDepth) return eval(game, pathfinder);
+    public static int evalRandomPath(Game game, int depth, int maxDepth) {
+        if (game.isOver()) {
+          return game.isAlive(game.getMySnakeIdx()) ? 500 - depth : -500 + depth;
+        }
+        if (depth == maxDepth) return eval(game);
 
-        game.step(getRandomValidDirectionsArray(game));
-        int eval = evalRandomPath(game, pathfinder, depth + 1, maxDepth);
+        Direction[] dir = getRandomValidDirectionsArray(game);
+        game.step(dir);
+        int eval = evalRandomPath(game, depth + 1, maxDepth);
         game.backtrack();
 
         return eval;
     }
 
-    public static int eval(Game game, Pathfinder pathfinder) {
-        int health = game.getHealth();
+    public static int eval(Game game) {
         int length = game.getLength();
-
-        pathfinder.setSource(game.getHeadPos());
-
-        pathfinder.setFloodFill(true);
-        pathfinder.execute();
-        int territory = pathfinder.getAreaCovered();
-
-        pathfinder.setFloodFill(false);
-        pathfinder.setDest(game.getTailPos());
-        pathfinder.execute();
-        boolean safePath = pathfinder.canReachTarget();
-
-        return (health < 10 ? 0 : -length)
-                + territory
-                + (safePath ? 100 : 0)
-                + -50 * game.getNumLivingSnakes();
+        return length;
     }
 }
 
