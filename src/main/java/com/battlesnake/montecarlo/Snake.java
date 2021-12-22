@@ -9,7 +9,6 @@ import spark.Request;
 import spark.Response;
 
 import java.io.InputStream;
-import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -86,20 +85,17 @@ public class Snake {
         }
 
         public static Properties loadProperties() {
-            Properties properties = null;
+            Properties props = null;
             try {
-                // pull config properties file from inside jar
-                // credit: https://stackoverflow.com/questions/4126030/executable-jar-wont-find-the-properties-files
-                URL root = Snake.class.getProtectionDomain().getCodeSource().getLocation();
-                URL propertiesFile = new URL(root, "config.properties");
-                properties = new Properties();
-                properties.load(propertiesFile.openStream());
+                props = new Properties();
+                InputStream is = Snake.class.getResourceAsStream("config.properties");
+                props.load(is);
             } catch (Exception e) {
                 LOG.error("Unable to read config file");
                 System.exit(2);
             }
 
-            return properties;
+            return props;
         }
 
         /**
