@@ -84,33 +84,18 @@ public class Snake {
             }
         }
 
-        public static Properties loadProperties() {
-            Properties props = null;
-            try {
-                props = new Properties();
-                InputStream is = Snake.class.getResourceAsStream("config.properties");
-                props.load(is);
-            } catch (Exception e) {
-                LOG.error("Unable to read config file");
-                System.exit(2);
-            }
-
-            return props;
-        }
-
         /**
          * Set up snake
          *
          * @return a response back to the engine containing the Battlesnake setup values.
          */
         public Map<String, String> index() {
-            Properties props = loadProperties();
             Map<String, String> response = new HashMap<>();
-            response.put("apiversion",  props.getProperty("apiversion"));
-            response.put("author",      props.getProperty("author"));
-            response.put("color",       props.getProperty("color"));
-            response.put("head",        props.getProperty("head"));
-            response.put("tail",        props.getProperty("tail"));
+            response.put("apiversion",  "1");
+            response.put("author",      "SullivanC19");
+            response.put("color",       "#888888");
+            response.put("head",        "default");
+            response.put("tail",        "default");
             return response;
         }
 

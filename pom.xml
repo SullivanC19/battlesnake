@@ -88,9 +88,6 @@
                                         com.battlesnake.montecarlo.Snake
                                     </mainClass>
                                 </manifest>
-                                <manifestEntries>
-                                    <Class-Path>.</Class-Path>
-                                </manifestEntries>
                             </archive>
                             <descriptorRefs>
                                 <descriptorRef>jar-with-dependencies</descriptorRef>
