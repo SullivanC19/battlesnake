@@ -99,26 +99,32 @@ public class Snake {
             return response;
         }
 
-
         /**
          * Ask Strategy class to return move given compiled move request object and provide it as response
          *
          * @return response map with move
          */
         public Map<String, String> move(JsonNode moveRequestObj) {
-            MoveRequest moveRequest = new MoveRequest(moveRequestObj);
-            final String move = Strategy.move(moveRequest);
+            // update game state
+            Game.update(moveRequestObj);
+
+            // get move
             Map<String, String> response = new HashMap<>();
-            response.put("move", move);
+            response.put("move", Strategy.move());
+
             return response;
         }
 
-        public Map<String, String> start(JsonNode startRequest) {
+        public Map<String, String> start(JsonNode startRequestObj) {
+            // initialize game state and strategy
+            Game.init(startRequestObj);
+            Pathfinder.init();
             Strategy.start();
+
             return EMPTY;
         }
 
-        public Map<String, String> end(JsonNode endRequest) {
+        public Map<String, String> end(JsonNode endRequestObj) {
             Strategy.end();
             return EMPTY;
         }

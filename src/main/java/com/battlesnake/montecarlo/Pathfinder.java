@@ -1,48 +1,47 @@
 package com.battlesnake.montecarlo;
 
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class Pathfinder {
-    private Game game;
-    private Position source;
-    private Targeter targeter;
-    private boolean floodFill;
+    private static Position source;
+    private static Targeter targeter;
+    private static boolean floodFill;
 
-    private Position target;
-    private int distToTarget, areaCovered;
-    private String nextMove;
+    private static Position target;
+    private static int distToTarget, areaCovered;
+    private static String nextMove;
 
-    public Pathfinder(Game game) {
-        this.game = game;
-        this.source = null;
-        this.targeter = null;
-        this.floodFill = false;
+    public static void init() {
+        source = null;
+        targeter = null;
+        floodFill = false;
     }
 
-    public void setSource(Position source) {
-        this.source = source;
+    public static void setSource(Position source) {
+        Pathfinder.source = source;
     }
 
-    public void setDest(Position targetPos) {
-        this.targeter = (Position pos) -> { return pos.equals(targetPos); };
+    public static void setDest(Position targetPos) {
+        Pathfinder.targeter = (Position pos) -> { return pos.equals(targetPos); };
     }
 
-    public void setTargeter(Targeter targeter) {
-        this.targeter = targeter;
+    public static void setTargeter(Targeter targeter) {
+        Pathfinder.targeter = targeter;
     }
 
-    public void setFloodFill(boolean floodFill) {
-        this.floodFill = floodFill;
+    public static void setFloodFill(boolean floodFill) {
+        Pathfinder.floodFill = floodFill;
     }
 
-    public void execute() {
+    public static void execute() {
         if (source == null || (!floodFill && targeter == null)) {
             throw new RuntimeException("pathfinder not initialized");
         }
 
-        int width = game.getWidth();
-        int height = game.getHeight();
+        int width = Game.getWidth();
+        int height = Game.getHeight();
 
         // largest possible number of nodes in queue is perimeter of outer rectangle
         Queue<Position> toVisit = new ArrayDeque<>((width + height) * 2);
@@ -65,7 +64,7 @@ public class Pathfinder {
 
             for (Direction dir : Direction.values()) {
                 Position nextPos = pos.move(dir);
-                if (game.canMoveOnto(nextPos)
+                if (Game.canMoveOnto(nextPos)
                         && !inQueue[nextPos.x][nextPos.y]) {
                     toVisit.add(nextPos);
                     inQueue[nextPos.x][nextPos.y] = true;
@@ -96,21 +95,21 @@ public class Pathfinder {
         return lastDir == null ? null : lastDir.getMove();
     }
 
-    public Position getTarget() {
+    public static Position getTarget() {
         return target;
     }
 
-    public boolean canReachTarget() { return target != null; }
+    public static boolean canReachTarget() { return target != null; }
 
-    public int getDistToTarget() {
+    public static int getDistToTarget() {
         return distToTarget;
     }
 
-    public int getAreaCovered() {
+    public static int getAreaCovered() {
         return areaCovered;
     }
 
-    public String getNextMove() {
+    public static String getNextMove() {
         return nextMove;
     }
 
