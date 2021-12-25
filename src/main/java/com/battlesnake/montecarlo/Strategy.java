@@ -25,7 +25,7 @@ public class Strategy {
 
     private static Direction[] getRandomValidDirectionsArray() {
         Direction[] directions = new Direction[Game.getNumSnakes()];
-        for (int snakeIdx = 0; snakeIdx < Game.getNumSnakes(); snakeIdx++) {
+        for (byte snakeIdx = 0; snakeIdx < Game.getNumSnakes(); snakeIdx++) {
             directions[snakeIdx] = Direction.RIGHT; // default;
             for (Direction dir : scrambledDirections()) {
                 Position nextPos = Game.getHeadPos(snakeIdx).move(dir);
@@ -48,11 +48,11 @@ public class Strategy {
             if (!Game.canMoveOnto(Game.getHeadPos().move(dir))) continue;
 
             int sum = 0;
-            for (int i = 0; i < 300; i++) {
+            for (int i = 0; i < 100; i++) {
                 Direction[] directions = getRandomValidDirectionsArray();
                 directions[Game.getMySnakeIdx()] = dir;
                 Game.step(directions);
-                sum += evalRandomPath(1, 20);
+                sum += evalRandomPath(1, 50);
                 Game.backtrack();
             }
             if (sum > bestSum) {
@@ -68,7 +68,7 @@ public class Strategy {
 
     public static int evalRandomPath(int depth, int maxDepth) {
         if (Game.isOver()) {
-          return Game.isAlive(Game.getMySnakeIdx()) ? 500 - depth : -500 + depth;
+          return Game.isAlive(Game.getMySnakeIdx()) ? 2000 - depth : -500 + depth;
         }
 
         if (depth == maxDepth) {
@@ -85,7 +85,16 @@ public class Strategy {
 
     public static int eval() {
         int length = Game.getLength();
-        return length;
+        int maxLength = 0;
+        for (byte snakeIdx = 0; snakeIdx < Game.getNumSnakes(); snakeIdx++) {
+          if (snakeIdx == Game.getMySnakeIdx()) continue;
+          if (Game.getLength(snakeIdx) > maxLength) {
+            maxLength = Game.getLength(snakeIdx);
+          }
+        }
+        
+        int lenDiff = Math.min(1, length - maxLength);
+        return lenDiff > 0 ? 500 : -10 * lenDiff * lenDiff;
     }
 }
 

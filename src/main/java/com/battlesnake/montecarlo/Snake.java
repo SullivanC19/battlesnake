@@ -21,7 +21,7 @@ import static spark.Spark.*;
 public class Snake {
     private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
     private static final Handler HANDLER = new Handler();
-    private static final Logger LOG = LoggerFactory.getLogger(Snake.class);
+    public static final Logger LOG = LoggerFactory.getLogger(Snake.class);
 
     public static void main(String[] args) {
         String port = System.getProperty("PORT");
