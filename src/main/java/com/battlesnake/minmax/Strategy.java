@@ -34,26 +34,35 @@ public class Strategy {
 
         Direction[] dirs = new Direction[Game.getNumSnakes()];
         byte mySnakeIdx = Game.getMySnakeIdx();
-        byte nextSnakeIdx = (byte) (mySnakeIdx + 1 % Game.getNumSnakes());
+        byte nextSnakeIdx = (byte) ((mySnakeIdx + 1) % Game.getNumSnakes());
 
-        int bestEval = Integer.MIN_VALUE;
         String move = "right";
-        for (Direction dir : scrambledDirections()) {
-            if (!Game.canMoveOnto(Game.getHeadPos().move(dir))) continue;
 
-            dirs[mySnakeIdx] = dir;
-            int eval = evalMinMax(dirs, nextSnakeIdx, 1, 6, bestEval, Integer.MAX_VALUE);
-            if (eval > bestEval) {
-                bestEval = eval;
-                move = dir.getMove();
-            }
+        int maxDepth = 4;
+
+        // TODO: find a way to prevent this from always going just too far on the next level
+        while (System.currentTimeMillis() - start < 50) {
+          int bestEval = Integer.MIN_VALUE;
+          for (Direction dir : scrambledDirections()) {
+              if (!Game.canMoveOnto(Game.getHeadPos().move(dir))) continue;
+
+              dirs[mySnakeIdx] = dir;
+              int eval = evalMinMax(dirs, nextSnakeIdx, 1, maxDepth, bestEval, Integer.MAX_VALUE);
+              if (eval > bestEval) {
+                  bestEval = eval;
+                  move = dir.getMove();
+              }
+          }
+          maxDepth++;
         }
-
+        
+        LOG.info("maxDepth: " + maxDepth);
         LOG.info("time: " + (System.currentTimeMillis() - start));
 
         return move;
     }
 
+    // TODO cache iterative level scores by hashed direction sequence and sort directions by this value
     public static int evalMinMax(Direction[] dirs, byte snakeIdx, int depth, int maxDepth, int alpha, int beta) {
         if (snakeIdx == Game.getMySnakeIdx()) {
             Game.step(dirs);
@@ -67,6 +76,7 @@ public class Strategy {
             depth++;
         }
 
+        Direction prevDir = dirs[snakeIdx];
         for (Direction dir : scrambledDirections()) {
             if (!Game.canMoveOnto(Game.getHeadPos(snakeIdx).move(dir))) continue;
 
@@ -77,6 +87,7 @@ public class Strategy {
                     maxDepth,
                     alpha,
                     beta);
+            dirs[snakeIdx] = prevDir;
 
             if (snakeIdx == Game.getMySnakeIdx() && eval > alpha) {
                 alpha = eval;
@@ -104,7 +115,7 @@ public class Strategy {
         }
 
         int myLength = Game.getLength(mySnakeIdx);
-        int oppLength = Game.getLength((byte) (mySnakeIdx + 1 % 2));
+        int oppLength = Game.getLength((byte) ((mySnakeIdx + 1) % 2));
         return Math.min(1, myLength - oppLength);
     }
 }
