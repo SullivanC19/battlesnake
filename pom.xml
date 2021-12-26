@@ -52,7 +52,7 @@
                     <arguments>
                         <argument>-classpath</argument>
                         <classpath/>
-                        <argument>com.battlesnake.montecarlo.Snake</argument>
+                        <argument>com.battlesnake.minmax.Snake</argument>
                     </arguments>
                 </configuration>
             </plugin>
@@ -85,7 +85,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        com.battlesnake.montecarlo.Snake
+                                        com.battlesnake.minmax.Snake
                                     </mainClass>
                                 </manifest>
                             </archive>
