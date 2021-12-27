@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 
 public class Game {
-    private static final byte MAX_NUM_SNAKES = 4;
+    public static final byte MAX_NUM_SNAKES = 4;
 
     private static short width, height;
     private static byte numSnakes;
@@ -19,12 +19,14 @@ public class Game {
     private static short[][] moveOccupied;
     private static boolean[][] food;
 
-    public static List<Position>[] body; // TODO make private again
+    private static List<Position>[] body;
     private static byte[] health;
     private static short[] length;
     private static boolean[] alive;
 
-    public static ArrayDeque<Move> moveStack;
+    private static ArrayDeque<Move> moveStack;
+
+    private static long startTime;
 
     public static void init(JsonNode startRequestObj) {
         width = (short) startRequestObj.get("board").get("width").asInt();
@@ -112,6 +114,14 @@ public class Game {
         }
     }
 
+    public static void startTimer() {
+        startTime = System.currentTimeMillis();
+    }
+
+    public static long getTimeElapsed() {
+        return System.currentTimeMillis() - startTime;
+    }
+
     public static short getWidth() {
         return width;
     }
@@ -120,12 +130,21 @@ public class Game {
     }
     public static byte getNumSnakes() { return numSnakes; }
 
-    public static boolean canMoveOnto(Position targetPos) {
-        if (!targetPos.inBounds(width, height)) return false;
+    public static boolean inBounds(Position pos) {
+        return pos.inBounds(width, height);
+    }
+    public static boolean onEdge(Position pos) {
+        return pos.x == 0 || pos.x == width - 1 || pos.y == 0 || pos.y == height - 1;
+    }
+    public static boolean canMoveOnto(Position targetPos, int turnsElapsed) {
+        if (!inBounds(targetPos)) return false;
         byte snakeIdx = snakeOccupied[targetPos.x][targetPos.y];
         return snakeIdx == -1
                 || !alive[snakeIdx]
-                || moveStack.size() - moveOccupied[targetPos.x][targetPos.y] >= length[snakeIdx] - 1;
+                || turnsElapsed + moveStack.size() - moveOccupied[targetPos.x][targetPos.y] >= length[snakeIdx] - 1;
+    }
+    public static boolean canMoveOnto(Position targetPos) {
+        return canMoveOnto(targetPos, 0);
     }
     public static boolean isFood(Position pos) {
         return food[pos.x][pos.y];

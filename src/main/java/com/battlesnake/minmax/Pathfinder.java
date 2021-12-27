@@ -63,7 +63,7 @@ public class Pathfinder {
 
             for (Direction dir : Direction.values()) {
                 Position nextPos = pos.move(dir);
-                if (Game.canMoveOnto(nextPos)
+                if (Game.canMoveOnto(nextPos, dist[pos.x][pos.y])
                         && !inQueue[nextPos.x][nextPos.y]) {
                     toVisit.add(nextPos);
                     inQueue[nextPos.x][nextPos.y] = true;
