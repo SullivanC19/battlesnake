@@ -121,6 +121,9 @@ public class Game {
             boolean[] alive = new boolean[2];
             alive[0] = alive[1] = true;
 
+            nextState.health[0] = 100;
+            nextState.health[1] = 100;
+
             // head-to-head collision
             if (nextState.head[0].equals(nextState.head[1])) {
                 alive[0] = state.length[0] > state.length[1];
