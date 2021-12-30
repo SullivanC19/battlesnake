@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 public class Strategy {
 
-    private static final long CUTOFF_TIME_ELAPSED = 400;
+    private static final long CUTOFF_TIME_ELAPSED = 200;
     private static final Logger LOG = LoggerFactory.getLogger(Strategy.class);
 
     private static long moveStartTime;
@@ -34,10 +34,11 @@ public class Strategy {
 
         int maxDepth = 4;
         String move = "right";
+        int bestEval = Integer.MIN_VALUE;
 
         Outer:
         while (true) {
-          int bestEval = Integer.MIN_VALUE;
+          bestEval = Integer.MIN_VALUE;
           String bestMove = "right";
 
           for (Direction dir : Direction.values()) {
@@ -50,7 +51,7 @@ public class Strategy {
                       maxDepth,
                       bestEval,
                       Integer.MAX_VALUE,
-                      0,
+                      dir.index(),
                       game);
 
               if (eval > bestEval) {
@@ -67,6 +68,7 @@ public class Strategy {
           maxDepth++;
         }
         
+        LOG.info("eval: " + bestEval);
         LOG.info("maxDepth: " + maxDepth);
         LOG.info("time: " + getTimeElapsed());
 
@@ -100,6 +102,12 @@ public class Strategy {
                 pathHashCode,
                 snakeIdx == 0,
                 game);
+
+        if (snakeIdx == 0) {
+          alpha = Math.max(alpha, Integer.MIN_VALUE + depth);
+        } else {
+          beta = Math.min(beta, Integer.MAX_VALUE - depth);
+        }
 
         for (Direction dir : orderedDirections) {
             dirs[snakeIdx] = dir;
