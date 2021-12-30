@@ -4,43 +4,44 @@ import java.util.ArrayDeque;
 import java.util.Queue;
 
 public class Pathfinder {
-    private static Position source;
-    private static Targeter targeter;
-    private static boolean floodFill;
+    private Game game;
 
-    private static Position target;
-    private static int distToTarget, areaCovered;
-    private static String nextMove;
+    private Position source;
+    private Targeter targeter;
+    private boolean floodFill;
 
-    public static void init() {
+    private Position target;
+    private int distToTarget, areaCovered;
+    private String nextMove;
+
+    public Pathfinder(Game game) {
+        this.game = game;
+
         source = null;
         targeter = null;
         floodFill = false;
     }
 
-    public static void setSource(Position source) {
-        Pathfinder.source = source;
+    public void setSource(Position source) {
+        this.source = source;
+    }
+    public void setDest(Position targetPos) {
+        this.targeter = (Position pos) -> { return pos.equals(targetPos); };
+    }
+    public void setTargeter(Targeter targeter) {
+        this.targeter = targeter;
+    }
+    public void setFloodFill(boolean floodFill) {
+        this.floodFill = floodFill;
     }
 
-    public static void setDest(Position targetPos) {
-        Pathfinder.targeter = (Position pos) -> { return pos.equals(targetPos); };
-    }
-
-    public static void setTargeter(Targeter targeter) {
-        Pathfinder.targeter = targeter;
-    }
-
-    public static void setFloodFill(boolean floodFill) {
-        Pathfinder.floodFill = floodFill;
-    }
-
-    public static void execute() {
+    public void execute() {
         if (source == null || (!floodFill && targeter == null)) {
             throw new RuntimeException("pathfinder not initialized");
         }
 
-        int width = Game.getWidth();
-        int height = Game.getHeight();
+        int width = game.getWidth();
+        int height = game.getHeight();
 
         // largest possible number of nodes in queue is perimeter of outer rectangle
         Queue<Position> toVisit = new ArrayDeque<>((width + height) * 2);
@@ -63,7 +64,7 @@ public class Pathfinder {
 
             for (Direction dir : Direction.values()) {
                 Position nextPos = pos.move(dir);
-                if (Game.canMoveOnto(nextPos, dist[pos.x][pos.y])
+                if (game.canMoveOnto(nextPos)
                         && !inQueue[nextPos.x][nextPos.y]) {
                     toVisit.add(nextPos);
                     inQueue[nextPos.x][nextPos.y] = true;
@@ -94,21 +95,21 @@ public class Pathfinder {
         return lastDir == null ? null : lastDir.getMove();
     }
 
-    public static Position getTarget() {
+    public Position getTarget() {
         return target;
     }
 
-    public static boolean canReachTarget() { return target != null; }
+    public boolean canReachTarget() { return target != null; }
 
-    public static int getDistToTarget() {
+    public int getDistToTarget() {
         return distToTarget;
     }
 
-    public static int getAreaCovered() {
+    public int getAreaCovered() {
         return areaCovered;
     }
 
-    public static String getNextMove() {
+    public String getNextMove() {
         return nextMove;
     }
 

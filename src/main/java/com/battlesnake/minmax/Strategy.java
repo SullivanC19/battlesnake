@@ -13,40 +13,24 @@ public class Strategy {
     private static final long CUTOFF_TIME_ELAPSED = 400;
     private static final Logger LOG = LoggerFactory.getLogger(Strategy.class);
 
+    private static long moveStartTime;
     private static Map<Long, Integer> estimatedValueOfPath;
 
     public static void start(JsonNode startRequestObj) {
-        Game.init(startRequestObj);
-        Pathfinder.init();
+
     }
 
     public static void end() {
 
     }
 
-    private static List<Direction> getOrderedDirections(Position headPos, long pathHashCode, boolean descending) {
-        return Arrays.stream(Direction.values())
-                .filter(dir -> Game.canMoveOnto(headPos.move(dir)))
-                .sorted((dir1, dir2) -> {
-                    int path1Value = estimatedValueOfPath.getOrDefault(
-                            4 * pathHashCode + dir1.hashCode(), 0);
-                    int path2Value = estimatedValueOfPath.getOrDefault(
-                            4 * pathHashCode + dir2.hashCode(), 0);
-
-                    return descending ? path2Value - path1Value : path1Value - path2Value;
-                })
-                .collect(Collectors.toList());
-    }
-
     public static String move(JsonNode moveRequestObj) {
-        Game.update(moveRequestObj);
-        Game.startTimer();
+        startMoveTimer();
 
-        Direction[] dirs = new Direction[Game.getNumSnakes()];
-        byte mySnakeIdx = Game.getMySnakeIdx();
-        byte nextSnakeIdx = (byte) ((mySnakeIdx + 1) % Game.getNumSnakes());
-
+        Game game = new Game(moveRequestObj);
+        Pathfinder pathfinder = new Pathfinder(game);
         estimatedValueOfPath = new HashMap<>();
+        Direction[] dirs = new Direction[game.getNumSnakes()];
 
         int maxDepth = 4;
         String move = "right";
@@ -57,23 +41,24 @@ public class Strategy {
           String bestMove = "right";
 
           for (Direction dir : Direction.values()) {
-              if (!Game.canMoveOnto(Game.getHeadPos().move(dir))) continue;
+              if (!game.canMoveOnto(game.getHeadPos(0).move(dir))) continue;
 
-              dirs[mySnakeIdx] = dir;
+              dirs[0] = dir;
               int eval = evalMinMax(dirs,
-                      nextSnakeIdx,
+                      1,
                       1,
                       maxDepth,
                       bestEval,
                       Integer.MAX_VALUE,
-                      0);
+                      0,
+                      game);
 
               if (eval > bestEval) {
                   bestEval = eval;
                   bestMove = dir.getMove();
               }
 
-              if (Game.getTimeElapsed() > CUTOFF_TIME_ELAPSED) {
+              if (getTimeElapsed() > CUTOFF_TIME_ELAPSED) {
                   break Outer;
               }
           }
@@ -83,25 +68,26 @@ public class Strategy {
         }
         
         LOG.info("maxDepth: " + maxDepth);
-        LOG.info("time: " + Game.getTimeElapsed());
+        LOG.info("time: " + getTimeElapsed());
 
         return move;
     }
 
     public static int evalMinMax(Direction[] dirs,
-                                 byte snakeIdx,
+                                 int snakeIdx,
                                  int depth,
                                  int maxDepth,
                                  int alpha,
                                  int beta,
-                                 long pathHashCode) {
-        if (snakeIdx == Game.getMySnakeIdx()) {
-            Game.step(dirs);
+                                 long pathHashCode,
+                                 Game game) {
+        if (snakeIdx == 0) {
+            game.step(dirs);
 
-            if (Game.isOver() || depth == maxDepth) {
-                int value = eval(depth);
+            if (game.getCurrentGameState() != Game.GAME_STATE_IN_PROGRESS || depth == maxDepth) {
+                int value = eval(game, depth);
                 estimatedValueOfPath.put(pathHashCode, value);
-                Game.backtrack();
+                game.backtrack();
                 return value;
             }
 
@@ -110,57 +96,77 @@ public class Strategy {
 
         Direction prevDir = dirs[snakeIdx];
         List<Direction> orderedDirections = getOrderedDirections(
-                Game.getHeadPos(snakeIdx), pathHashCode, snakeIdx == Game.getMySnakeIdx());
+                game.getHeadPos(snakeIdx),
+                pathHashCode,
+                snakeIdx == 0,
+                game);
+
         for (Direction dir : orderedDirections) {
             dirs[snakeIdx] = dir;
             int eval = evalMinMax(dirs,
-                    (byte) ((snakeIdx + 1) % Game.getNumSnakes()),
+                    (snakeIdx + 1) % game.getNumSnakes(),
                     depth,
                     maxDepth,
                     alpha,
                     beta,
-                    pathHashCode * 4 + dir.hashCode());
+                    pathHashCode * 4 + dir.index(),
+                    game);
             dirs[snakeIdx] = prevDir;
 
-            if (snakeIdx == Game.getMySnakeIdx() && eval > alpha) {
+            if (snakeIdx == 0 && eval > alpha) {
                 alpha = eval;
             }
 
-            if (snakeIdx != Game.getMySnakeIdx() && eval < beta) {
+            if (snakeIdx != 0 && eval < beta) {
                 beta = eval;
             }
 
-            if (alpha >= beta || Game.getTimeElapsed() > CUTOFF_TIME_ELAPSED) break;
+            if (alpha >= beta || getTimeElapsed() > CUTOFF_TIME_ELAPSED) {
+                break;
+            }
         }
 
-        if (snakeIdx == Game.getMySnakeIdx()) {
-            Game.backtrack();
+        if (snakeIdx == 0) {
+            game.backtrack();
         }
 
-        int value = snakeIdx == Game.getMySnakeIdx() ? alpha : beta;
+        int value = snakeIdx == 0 ? alpha : beta;
         estimatedValueOfPath.put(pathHashCode, value);
 
         return value;
     }
 
-    public static int eval(int depth) {
-        byte mySnakeIdx = Game.getMySnakeIdx();
-        byte oppSnakeIdx = (byte) ((mySnakeIdx + 1) % 2);
+    private static int eval(Game game, int depth) {
+        byte gameState = game.getCurrentGameState();
 
-        if (Game.isOver()) {
-            return Game.isAlive(mySnakeIdx) ? Integer.MAX_VALUE - depth : Integer.MIN_VALUE + depth;
-        }
+        if (gameState == Game.GAME_STATE_OVER_DRAW) return 0;
+        if (gameState == Game.GAME_STATE_OVER_LOSS) return Integer.MIN_VALUE + depth;
+        if (gameState == Game.GAME_STATE_OVER_WIN) return Integer.MAX_VALUE - depth;
 
-        int myLength = Game.getLength(mySnakeIdx);
-        int oppLength = Game.getLength(oppSnakeIdx);
+        // game in progress
+        return 0;
+    }
 
-        Position myHeadPos = Game.getHeadPos(mySnakeIdx);
-        Position oppHeadPos = Game.getHeadPos(oppSnakeIdx);
+    private static void startMoveTimer() {
+        moveStartTime = System.currentTimeMillis();
+    }
 
-        int myOnEdge = Game.onEdge(myHeadPos) ? 1 : 0;
-        int oppOnEdge = Game.onEdge(oppHeadPos) ? 1 : 0;
+    private static long getTimeElapsed() {
+        return System.currentTimeMillis() - moveStartTime;
+    }
 
-        return (myLength - oppLength) - 10 * (myOnEdge - oppOnEdge);
+    private static List<Direction> getOrderedDirections(Position headPos, long pathHashCode, boolean descending, Game game) {
+        return Arrays.stream(Direction.values())
+                .filter(dir -> game.canMoveOnto(headPos.move(dir)))
+                .sorted((dir1, dir2) -> {
+                    int path1Value = estimatedValueOfPath.getOrDefault(
+                            4 * pathHashCode + dir1.index(), 0);
+                    int path2Value = estimatedValueOfPath.getOrDefault(
+                            4 * pathHashCode + dir2.index(), 0);
+
+                    return descending ? path2Value - path1Value : path1Value - path2Value;
+                })
+                .collect(Collectors.toList());
     }
 }
 

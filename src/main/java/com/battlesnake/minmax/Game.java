@@ -5,318 +5,218 @@ import com.fasterxml.jackson.databind.JsonNode;
 import java.util.*;
 
 public class Game {
-    public static final byte MAX_NUM_SNAKES = 4;
+    public static final byte MAX_NUM_SNAKES = 2;
+    public static final int MAX_BOARD_SIZE = 30;
 
-    private static short width, height;
-    private static byte numSnakes;
-    private static byte numSnakesAlive;
+    public static final byte GAME_STATE_IN_PROGRESS = 0;
+    public static final byte GAME_STATE_OVER_WIN = 1;
+    public static final byte GAME_STATE_OVER_DRAW = 2;
+    public static final byte GAME_STATE_OVER_LOSS = 3;
 
-    private static String mySnakeId;
-    private static byte mySnakeIdx;
-    private static Map<String, Byte> snakeIdToIdxMap;
+    private final int width, height;
+    private final int numSnakes;
+    private final String mySnakeId;
 
-    private static byte[][] snakeOccupied;
-    private static short[][] moveOccupied;
-    private static boolean[][] food;
+    private final boolean[][] snake;
+    private final boolean[][] food;
+    private final List<State> states;
 
-    private static List<Position>[] body;
-    private static byte[] health;
-    private static short[] length;
-    private static boolean[] alive;
+    public Game(JsonNode moveRequestObj) {
+        width = moveRequestObj.get("board").get("width").asInt();
+        height = moveRequestObj.get("board").get("height").asInt();
+        numSnakes = moveRequestObj.get("board").get("snakes").size();
+        mySnakeId = moveRequestObj.get("you").get("id").asText();
 
-    private static ArrayDeque<Move> moveStack;
-
-    private static long startTime;
-
-    public static void init(JsonNode startRequestObj) {
-        width = (short) startRequestObj.get("board").get("width").asInt();
-        height = (short) startRequestObj.get("board").get("height").asInt();
-        numSnakes = numSnakesAlive = (byte) startRequestObj.get("board").get("snakes").size();
-        mySnakeId = startRequestObj.get("you").get("id").asText();
-        snakeIdToIdxMap = new HashMap<>(MAX_NUM_SNAKES);
-
-        snakeOccupied = new byte[width][height];
-        moveOccupied = new short[width][height];
+        snake = new boolean[width][height];
         food = new boolean[width][height];
+        states = new ArrayList<>();
 
-        body = new List[numSnakes];
-        health = new byte[numSnakes];
-        length = new short[numSnakes];
-        alive = new boolean[numSnakes];
-
-        initSnakes(startRequestObj.get("board").get("snakes"));
-        addFood(startRequestObj.get("board").get("food"));
-
-        moveStack = new ArrayDeque<>();
+        initSnakes(moveRequestObj.get("board").get("snakes"));
+        initFood(moveRequestObj.get("board").get("food"));
+        initStates(moveRequestObj);
     }
 
-    public static void update(JsonNode moveRequestObj) {
-        JsonNode snakesObj = moveRequestObj.get("board").get("snakes");
-        Direction[] dir = new Direction[Game.getNumSnakes()];
-        boolean allNull = true;
+    private void initSnakes(JsonNode snakesObj) {
         for (JsonNode snakeObj : snakesObj) {
-            byte snakeIdx = snakeIdToIdxMap.get(snakeObj.get("id").asText());
-            Position headPos = Position.fromJsonObj(snakeObj.get("body").get(0));
-            Position lastHeadPos = Game.getHeadPos(snakeIdx);
-            dir[snakeIdx] = lastHeadPos.directionTo(headPos);
-            allNull &= dir[snakeIdx] == null;
-        }
-
-        if (!allNull) {
-          Game.step(dir);
-          addFood(moveRequestObj.get("board").get("food"));
-        }
-    }
-
-    private static void initSnakes(JsonNode snakesObj) {
-        short maxDepth = (short) (-width * height);
-        for (short x = 0; x < width; x++) {
-            for (short y = 0; y < height; y++){
-                snakeOccupied[x][y] = -1;
-                moveOccupied[x][y] = maxDepth;
-            }
-        }
-
-        byte snakeIdx = 0;
-        for (JsonNode snakeObj : snakesObj) {
-            body[snakeIdx] = new ArrayList<>();
-            health[snakeIdx] = (byte) snakeObj.get("health").asInt();
-            length[snakeIdx] = (short) snakeObj.get("length").asInt();
-            alive[snakeIdx] = true;
-
-            String snakeId = snakeObj.get("id").asText();
-            if (snakeId.equals(mySnakeId)) {
-              mySnakeIdx = snakeIdx;
-            }
-
-            snakeIdToIdxMap.put(snakeId, snakeIdx);
-
             for (JsonNode posObj : snakeObj.get("body")) {
-                body[snakeIdx].add(Position.fromJsonObj(posObj));
+                Position pos = Position.fromJsonObj(posObj);
+                snake[pos.x][pos.y] = true;
             }
-            Collections.reverse(body[snakeIdx]);
-
-            short move = (short) -body[snakeIdx].size();
-            for (Position pos : body[snakeIdx]) {
-                snakeOccupied[pos.x][pos.y] = snakeIdx;
-                moveOccupied[pos.x][pos.y] = ++move;
-            }
-
-            snakeIdx++;
         }
     }
 
-    private static void addFood(JsonNode foodObj) {
+    private void initFood(JsonNode foodObj) {
         for (JsonNode posObj : foodObj) {
-            int x = posObj.get("x").asInt();
-            int y = posObj.get("y").asInt();
-            food[x][y] = true;
+            Position pos = Position.fromJsonObj(posObj);
+            food[pos.x][pos.y] = true;
         }
     }
 
-    public static void startTimer() {
-        startTime = System.currentTimeMillis();
+    private void initStates(JsonNode moveRequestObj) {
+        int curTurn = moveRequestObj.get("turn").asInt();
+        JsonNode snakesObj = moveRequestObj.get("board").get("snakes");
+
+        // set current state's length and health
+        State curState = new State(curTurn);
+        for (JsonNode snakeObj : snakesObj) {
+            int snakeIdx = snakeObj.get("id").asText().equals(mySnakeId) ? 0 : 1;
+            curState.length[snakeIdx] = snakeObj.get("length").asInt();
+            curState.health[snakeIdx] = snakeObj.get("health").asInt();
+        }
+
+        states.add(curState);
+
+        // set states' head positions
+        for (JsonNode snakeObj : snakesObj) {
+            int snakeIdx = snakeObj.get("id").asText().equals(mySnakeId) ? 0 : 1;
+            int turn = curTurn;
+            for (JsonNode posObj : snakeObj.get("body")) {
+                Position pos = Position.fromJsonObj(posObj);
+                if (curTurn - turn >= states.size()) states.add(new State(turn));
+                states.get(curTurn - turn).head[snakeIdx] = pos;
+                turn--;
+            }
+        }
+
+        // put current state at end of list
+        Collections.reverse(states);
     }
 
-    public static long getTimeElapsed() {
-        return System.currentTimeMillis() - startTime;
+    private State getCurrentState(boolean remove) {
+        return remove ? states.remove(states.size() - 1) : states.get(states.size() - 1);
     }
 
-    public static short getWidth() {
+    public int getWidth() {
         return width;
     }
-    public static short getHeight() {
+    public int getHeight() {
         return height;
     }
-    public static byte getNumSnakes() { return numSnakes; }
-
-    public static boolean inBounds(Position pos) {
-        return pos.inBounds(width, height);
-    }
-    public static boolean onEdge(Position pos) {
-        return pos.x == 0 || pos.x == width - 1 || pos.y == 0 || pos.y == height - 1;
-    }
-    public static boolean canMoveOnto(Position targetPos, int turnsElapsed) {
-        if (!inBounds(targetPos)) return false;
-        byte snakeIdx = snakeOccupied[targetPos.x][targetPos.y];
-        return snakeIdx == -1
-                || !alive[snakeIdx]
-                || turnsElapsed + moveStack.size() - moveOccupied[targetPos.x][targetPos.y] >= length[snakeIdx] - 1;
-    }
-    public static boolean canMoveOnto(Position targetPos) {
-        return canMoveOnto(targetPos, 0);
-    }
-    public static boolean isFood(Position pos) {
-        return food[pos.x][pos.y];
+    public int getNumSnakes() {
+        return numSnakes;
     }
 
-    public static Position getHeadPos(byte snakeIdx) {
-        return body[snakeIdx].get(body[snakeIdx].size() - 1);
+    public byte getCurrentGameState() {
+        return getCurrentState(false).getGameState();
     }
-    public static Position getTailPos(byte snakeIdx) {
-        return body[snakeIdx].get(body[snakeIdx].size() - length[snakeIdx]);
+    public Position getHeadPos(int snakeIdx) {
+        return getCurrentState(false).head[snakeIdx];
     }
-    public static short getLength(byte snakeIdx) {
-        return length[snakeIdx];
+    public Position getTailPos(int snakeIdx) {
+        int length = getCurrentState(false).length[snakeIdx];
+        return states.get(states.size() - length).head[snakeIdx];
     }
-    public static byte getHealth(byte snakeIdx) {
-        return health[snakeIdx];
-    }
-    public static boolean isAlive(byte snakeIdx) {
-        return alive[snakeIdx];
+    public boolean canMoveOnto(Position pos) {
+        return pos.inBounds(width, height) && !snake[pos.x][pos.y];
     }
 
-    public static void step(Direction[] dir) {
-        boolean[] collidedOrOob = new boolean[numSnakes];
+    public void step(Direction[] dir) {
+        State state = getCurrentState(false);
+        State nextState = new State(state.turn + 1);
 
-        byte[] prevHealth = new byte[numSnakes];
-        byte[] prevSnakeOccupied = new byte[numSnakes];
-        short[] prevMoveOccupied = new short[numSnakes];
-        boolean[] prevAlive = new boolean[numSnakes];
-        boolean[] foodAcquired = new boolean[numSnakes];
+        if (state.getGameState() == GAME_STATE_IN_PROGRESS) {
+            nextState.head[0] = state.head[0].move(dir[0]);
+            nextState.head[1] = state.head[1].move(dir[1]);
 
-        // move, check for body collisions or out-of-bounds, and reduce health
-        for (byte snakeIdx = 0; snakeIdx < numSnakes; snakeIdx++) {
-            if (!alive[snakeIdx] || dir[snakeIdx] == null) continue;
-            
-            prevAlive[snakeIdx] = alive[snakeIdx];
-            prevHealth[snakeIdx] = health[snakeIdx];
+            boolean[] alive = new boolean[2];
+            alive[0] = alive[1] = true;
 
-            Position nextHeadPos = getHeadPos(snakeIdx).move(dir[snakeIdx]);
-            body[snakeIdx].add(nextHeadPos);
-            health[snakeIdx]--;
-
-            // check for oob
-            if (!nextHeadPos.inBounds(width, height)) {
-              collidedOrOob[snakeIdx] = true;
-              continue;
+            // head-to-head collision
+            if (nextState.head[0].equals(nextState.head[1])) {
+                alive[0] = state.length[0] > state.length[1];
+                alive[1] = state.length[1] > state.length[0];
             }
 
-            prevSnakeOccupied[snakeIdx] = snakeOccupied[nextHeadPos.x][nextHeadPos.y];
-            prevMoveOccupied[snakeIdx] = moveOccupied[nextHeadPos.x][nextHeadPos.y];
+            // in bounds
+            alive[0] &= nextState.head[0].inBounds(width, height);
+            alive[1] &= nextState.head[1].inBounds(width, height);
 
-            // check for collision
-            if (!canMoveOnto(nextHeadPos)) {
-              collidedOrOob[snakeIdx] = true;
+            if (alive[0] && alive[1]) {
+                Position head0 = nextState.head[0];
+                Position head1 = nextState.head[1];
 
-              // head-to-head collision
-              if (moveOccupied[nextHeadPos.x][nextHeadPos.y] == moveStack.size() + 1) {
-                  byte collidedSnakeIdx = snakeOccupied[nextHeadPos.x][nextHeadPos.y];
+                // food eaten
+                nextState.foodEaten[0] = food[head0.x][head0.y];
+                nextState.foodEaten[1] = food[head1.x][head1.y];
+                food[head0.x][head0.y] = false;
+                food[head1.x][head1.y] = false;
 
-                  collidedOrOob[collidedSnakeIdx] = length[collidedSnakeIdx] <= length[snakeIdx];
-                  collidedOrOob[snakeIdx] = length[snakeIdx] <= length[collidedSnakeIdx];
+                // health update
+                nextState.health[0] = nextState.foodEaten[0] ? 100 : state.health[0] - 1;
+                nextState.health[1] = nextState.foodEaten[1] ? 100 : state.health[1] - 1;
 
-                  // pull values from already moved snake
-                  prevSnakeOccupied[snakeIdx] = prevSnakeOccupied[collidedSnakeIdx];
-                  prevMoveOccupied[snakeIdx] = prevMoveOccupied[collidedSnakeIdx];
-              }
-            } else {
-              snakeOccupied[nextHeadPos.x][nextHeadPos.y] = snakeIdx;
-              moveOccupied[nextHeadPos.x][nextHeadPos.y] = (short) (moveStack.size() + 1);
+                // length update
+                nextState.length[0] = state.length[0] + (nextState.foodEaten[0] ? 0 : 1);
+                nextState.length[1] = state.length[1] + (nextState.foodEaten[1] ? 0 : 1);
+
+                // remove tail (if food not eaten)
+                Position tail0 = getTailPos(0);
+                Position tail1 = getTailPos(1);
+                snake[tail0.x][tail1.y] = nextState.foodEaten[0] || state.turn < 2;
+                snake[tail0.x][tail1.y] = nextState.foodEaten[1] || state.turn < 2;
+
+                // collision
+                alive[0] = !snake[head0.x][head0.y];
+                alive[1] = !snake[head1.x][head1.y];
+
+                // add new head
+                snake[head0.x][head0.y] = true;
+                snake[head1.x][head1.y] = true;
             }
+
+            if (!alive[0]) nextState.health[0] = 0;
+            if (!alive[1]) nextState.health[1] = 0;
         }
 
-        // food and update grids
-        for (byte snakeIdx = 0; snakeIdx < numSnakes; snakeIdx++) {
-          if (!alive[snakeIdx] || collidedOrOob[snakeIdx]) continue;
-
-          Position nextHeadPos = getHeadPos(snakeIdx);
-          foodAcquired[snakeIdx] = isFood(nextHeadPos);
-          if (foodAcquired[snakeIdx]) {
-              health[snakeIdx] = 100;
-              length[snakeIdx]++;
-              food[nextHeadPos.x][nextHeadPos.y] = false;
-          }
-        }
-
-        // remove dead snakes
-        for (byte snakeIdx = 0; snakeIdx < numSnakes; snakeIdx++) {
-          if (alive[snakeIdx] && (collidedOrOob[snakeIdx] || health[snakeIdx] == 0)) {
-            alive[snakeIdx] = false;
-            numSnakesAlive--;
-          }
-        }
-
-        Move move = new Move(
-            dir,
-            prevHealth,
-            prevSnakeOccupied,
-            prevMoveOccupied,
-            prevAlive,
-            foodAcquired
-        );
-
-        moveStack.push(move);
+        states.add(nextState);
     }
 
-    public static void backtrack() {
-        Move lastMove = moveStack.pop();
-        for (byte snakeIdx = 0; snakeIdx < numSnakes; snakeIdx++) {
-            if (!lastMove.prevAlive[snakeIdx]) continue;
+    public void backtrack() {
+        State state = getCurrentState(true);
+        if (!state.head[0].equals(state.head[1])
+                && state.head[0].inBounds(width, height)
+                && state.head[1].inBounds(width, height)) {
+            Position head0 = state.head[0];
+            Position head1 = state.head[1];
 
-            Position headPos = getHeadPos(snakeIdx);
-            if (lastMove.foodAcquired[snakeIdx]) {
-                food[headPos.x][headPos.y] = true;
-                length[snakeIdx]--;
-            }
+            // remove head
+            snake[head0.x][head0.y] = false;
+            snake[head1.x][head1.y] = false;
 
-            if (headPos.inBounds(width, height)) {
-                snakeOccupied[headPos.x][headPos.y] = lastMove.prevSnakeOccupied[snakeIdx];
-                moveOccupied[headPos.x][headPos.y] = lastMove.prevMoveOccupied[snakeIdx];
-            }
+            // add old tail
+            Position tail0 = getTailPos(0);
+            Position tail1 = getTailPos(1);
+            snake[tail0.x][tail1.y] = true;
+            snake[tail0.x][tail1.y] = true;
 
-            if (lastMove.prevAlive[snakeIdx] && !alive[snakeIdx]) {
-                numSnakesAlive++;
-            }
-
-            health[snakeIdx] = lastMove.prevHealth[snakeIdx];
-            alive[snakeIdx] = lastMove.prevAlive[snakeIdx];
-            body[snakeIdx].remove(body[snakeIdx].size() - 1);
+            // food regurgitated
+            food[head0.x][head0.y] = state.foodEaten[0];
+            food[head1.x][head1.y] = state.foodEaten[1];
         }
     }
 
-    public static byte getMySnakeIdx() {
-      return mySnakeIdx;
-    }
-    public static Position getHeadPos() {
-        return getHeadPos(mySnakeIdx);
-    }
-    public static Position getTailPos() {
-        return getTailPos(mySnakeIdx);
-    }
-    public static short getLength() {
-        return getLength(mySnakeIdx);
-    }
-    public static byte getHealth() {
-        return getHealth(mySnakeIdx);
-    }
-    public static boolean isOver() {
-        return getNumLivingSnakes() <= (numSnakes == 1 ? 0 : 1);
-    }
+    private static class State {
+        int turn;
 
-    public static byte getNumLivingSnakes() {
-        return numSnakesAlive;
-    }
+        Position[] head;
+        int[] length;
+        int[] health;
+        boolean[] foodEaten;
 
-    private static class Move {
-        Direction[] dir;
-        byte[] prevHealth;
-        byte[] prevSnakeOccupied;
-        short[] prevMoveOccupied;
-        boolean[] prevAlive;
-        boolean[] foodAcquired;
-        public Move(Direction[] dir,
-                    byte[] prevHealth,
-                    byte[] prevSnakeOccupied,
-                    short[] prevMoveOccupied,
-                    boolean[] prevAlive,
-                    boolean[] foodAcquired) {
-            this.dir = dir;
-            this.prevHealth = prevHealth;
-            this.prevSnakeOccupied = prevSnakeOccupied;
-            this.prevMoveOccupied = prevMoveOccupied;
-            this.prevAlive = prevAlive;
-            this.foodAcquired = foodAcquired;
+        public State(int turn) {
+            this.turn = turn;
+
+            this.head = new Position[MAX_NUM_SNAKES];
+            this.length = new int[MAX_NUM_SNAKES];
+            this.health = new int[MAX_NUM_SNAKES];
+            this.foodEaten = new boolean[2];
+        }
+
+        public byte getGameState() {
+            if (health[0] <= 0 && health[1] <= 0) return GAME_STATE_OVER_DRAW;
+            if (health[0] <= 0) return GAME_STATE_OVER_LOSS;
+            if (health[1] <= 0) return GAME_STATE_OVER_WIN;
+            return GAME_STATE_IN_PROGRESS;
         }
     }
 }

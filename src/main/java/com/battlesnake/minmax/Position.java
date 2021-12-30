@@ -3,29 +3,28 @@ package com.battlesnake.minmax;
 import com.fasterxml.jackson.databind.JsonNode;
 
 public class Position {
-    short x, y;
+    int x, y;
 
-    public Position(short x, short y) {
+    public Position(int x, int y) {
         this.x = x;
         this.y = y;
     }
 
     public static Position fromJsonObj(JsonNode positionObj) {
-        return new Position((short) positionObj.get("x").asInt(), (short) positionObj.get("y").asInt());
+        return new Position(positionObj.get("x").asInt(), positionObj.get("y").asInt());
     }
 
     public Position move(Direction dir) {
-        return new Position((short) (x + dir.xDiff()), (short) (y + dir.yDiff()));
+        return new Position(x + dir.xDiff(), y + dir.yDiff());
     }
 
-    public int hashCode(int width) {
-        return x + y * width;
-    }
 
-    public boolean inBounds(short width, short height) {
+    public boolean inBounds(int width, int height) {
         return x >= 0 && y >= 0 && x < width && y < height;
     }
-
+    public boolean onEdge(int width, int height) {
+        return x == 0 || y == 0 || x == width - 1 || y == height - 1;
+    }
     public Direction directionTo(Position pos) {
         if (pos.x != x) {
             return pos.x < x ? Direction.LEFT : Direction.RIGHT;
@@ -41,7 +40,9 @@ public class Position {
     public String toString() {
         return "(" + x + ", " + y + ")";
     }
-
+    public int hashCode() {
+        return x + y * Game.MAX_BOARD_SIZE;
+    }
     public boolean equals(Position pos) {
         return pos.x == x && pos.y == y;
     }
