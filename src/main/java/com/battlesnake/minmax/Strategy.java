@@ -34,7 +34,7 @@ public class Strategy {
 
         int maxDepth = 4;
         String move = "right";
-        int bestEval = Integer.MIN_VALUE;
+        int bestEval;
 
         Outer:
         while (true) {
@@ -52,7 +52,8 @@ public class Strategy {
                       bestEval,
                       Integer.MAX_VALUE,
                       dir.index(),
-                      game);
+                      game,
+                      pathfinder);
 
               if (eval > bestEval) {
                   bestEval = eval;
@@ -82,12 +83,13 @@ public class Strategy {
                                  int alpha,
                                  int beta,
                                  long pathHashCode,
-                                 Game game) {
+                                 Game game,
+                                 Pathfinder pathfinder) {
         if (snakeIdx == 0) {
             game.step(dirs);
 
             if (game.getCurrentGameState() != Game.GAME_STATE_IN_PROGRESS || depth == maxDepth) {
-                int value = eval(game, depth);
+                int value = eval(game, pathfinder, depth);
                 estimatedValueOfPath.put(pathHashCode, value);
                 game.backtrack();
                 return value;
@@ -118,7 +120,8 @@ public class Strategy {
                     alpha,
                     beta,
                     pathHashCode * 4 + dir.index(),
-                    game);
+                    game,
+                    pathfinder);
             dirs[snakeIdx] = prevDir;
 
             if (snakeIdx == 0 && eval > alpha) {
@@ -144,7 +147,7 @@ public class Strategy {
         return value;
     }
 
-    private static int eval(Game game, int depth) {
+    private static int eval(Game game, Pathfinder pathfinder, int depth) {
         byte gameState = game.getCurrentGameState();
 
         if (gameState == Game.GAME_STATE_OVER_DRAW) return 0;
@@ -152,7 +155,20 @@ public class Strategy {
         if (gameState == Game.GAME_STATE_OVER_WIN) return Integer.MAX_VALUE - depth;
 
         // game in progress
-        return 0;
+
+        pathfinder.setSource(new Position[] {game.getHeadPos(0)});
+        pathfinder.setTargeter(new Pathfinder.Targeter() {
+            public boolean isTarget(Position pos) {
+                return game.isFood(pos);
+            }
+        });
+        pathfinder.execute();
+
+        int myLength = game.getLength(0);
+        int oppLength = game.getLength(1);
+        int distToFood = pathfinder.getDistToTarget();
+
+        return (myLength - oppLength) * 100 - distToFood;
     }
 
     private static void startMoveTimer() {

@@ -99,6 +99,9 @@ public class Game {
     public byte getCurrentGameState() {
         return getCurrentState(false).getGameState();
     }
+    public int getLength(int snakeIdx) {
+        return getCurrentState(false).length[snakeIdx];
+    }
     public Position getHeadPos(int snakeIdx) {
         return getCurrentState(false).head[snakeIdx];
     }
@@ -108,6 +111,9 @@ public class Game {
     }
     public boolean canMoveOnto(Position pos) {
         return pos.inBounds(width, height) && !snake[pos.x][pos.y];
+    }
+    public boolean isFood(Position pos) {
+        return food[pos.x][pos.y];
     }
 
     public void step(Direction[] dir) {
