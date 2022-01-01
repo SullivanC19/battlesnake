@@ -164,8 +164,8 @@ public class Game {
                 // remove tail (if food not eaten)
                 Position tail0 = getTailPos(0);
                 Position tail1 = getTailPos(1);
-                snake[tail0.x][tail0.y] = nextState.foodEaten[0] || state.turn < 2;
-                snake[tail1.x][tail1.y] = nextState.foodEaten[1] || state.turn < 2;
+                snake[tail0.x][tail0.y] = state.foodEaten[0] || state.turn < 2;
+                snake[tail1.x][tail1.y] = state.foodEaten[1] || state.turn < 2;
 
                 // collision
                 alive[0] = !snake[head0.x][head0.y];
