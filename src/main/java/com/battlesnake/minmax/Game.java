@@ -188,9 +188,9 @@ public class Game {
             Position head0 = state.head[0];
             Position head1 = state.head[1];
 
-            // remove head
-            snake[head0.x][head0.y] = false;
-            snake[head1.x][head1.y] = false;
+            // remove head (if no collision)
+            snake[head0.x][head0.y] = state.health[0] <= 0;
+            snake[head1.x][head1.y] = state.health[1] <= 0;
 
             // add old tail
             Position tail0 = getTailPos(0);
