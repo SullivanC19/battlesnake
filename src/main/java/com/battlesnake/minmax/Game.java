@@ -110,7 +110,10 @@ public class Game {
         return states.get(states.size() - length).head[snakeIdx];
     }
     public boolean canMoveOnto(Position pos) {
-        return pos.inBounds(width, height) && !snake[pos.x][pos.y];
+        return pos.inBounds(width, height)
+                && (!snake[pos.x][pos.y]
+                || pos.equals(getTailPos(0))
+                || pos.equals(getTailPos(1)));
     }
     public boolean isFood(Position pos) {
         return food[pos.x][pos.y];
