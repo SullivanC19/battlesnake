@@ -34,10 +34,10 @@ public class Strategy {
 
         int maxDepth = 4;
         String move = "right";
-        int bestEval;
+        int bestEval = 0;
 
         Outer:
-        while (true) {
+        while (maxDepth < 100) {
           bestEval = Integer.MIN_VALUE;
           String bestMove = "right";
 

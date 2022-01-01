@@ -195,8 +195,8 @@ public class Game {
             // add old tail
             Position tail0 = getTailPos(0);
             Position tail1 = getTailPos(1);
-            snake[tail0.x][tail1.y] = true;
-            snake[tail0.x][tail1.y] = true;
+            snake[tail0.x][tail0.y] = true;
+            snake[tail1.x][tail1.y] = true;
 
             // food regurgitated
             food[head0.x][head0.y] = state.foodEaten[0];
