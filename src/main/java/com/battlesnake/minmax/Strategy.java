@@ -156,6 +156,7 @@ public class Strategy {
 
         // game in progress
 
+        pathfinder.setFloodFill(false);
         pathfinder.setSource(new Position[] {game.getHeadPos(0)});
         pathfinder.setTargeter(new Pathfinder.Targeter() {
             public boolean isTarget(Position pos) {
@@ -164,11 +165,21 @@ public class Strategy {
         });
         pathfinder.execute();
 
-        int myLength = game.getLength(0);
-        int oppLength = game.getLength(1);
         int distToFood = pathfinder.getDistToTarget();
 
-        return (myLength - oppLength) * 100 - distToFood;
+        pathfinder.setFloodFill(true);
+        pathfinder.setSource(new Position[] {game.getHeadPos(0), game.getHeadPos(1)});
+        pathfinder.execute();
+
+        int myAreaControl = pathfinder.getAreaCovered(0);
+        int oppAreaControl = pathfinder.getAreaCovered(1);
+
+        int myLength = game.getLength(0);
+        int oppLength = game.getLength(1);
+
+        return 20 * (myLength - oppLength)
+        - (pathfinder.canReachTarget() ? distToFood : -50)
+        + 5 * (myAreaControl - oppAreaControl);
     }
 
     private static void startMoveTimer() {

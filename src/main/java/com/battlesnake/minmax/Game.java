@@ -155,8 +155,8 @@ public class Game {
                 nextState.health[1] = nextState.foodEaten[1] ? 100 : state.health[1] - 1;
 
                 // length update
-                nextState.length[0] = state.length[0] + (nextState.foodEaten[0] ? 0 : 1);
-                nextState.length[1] = state.length[1] + (nextState.foodEaten[1] ? 0 : 1);
+                nextState.length[0] = state.length[0] + (nextState.foodEaten[0] ? 1 : 0);
+                nextState.length[1] = state.length[1] + (nextState.foodEaten[1] ? 1 : 0);
 
                 // remove tail (if food not eaten)
                 Position tail0 = getTailPos(0);
