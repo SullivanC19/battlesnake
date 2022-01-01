@@ -11,6 +11,7 @@ import java.util.stream.Stream;
 public class Strategy {
 
     private static final long CUTOFF_TIME_ELAPSED = 300;
+    private static final int MAX_DEPTH = 100;
     private static final Logger LOG = LoggerFactory.getLogger(Strategy.class);
 
     private static long moveStartTime;
@@ -37,7 +38,7 @@ public class Strategy {
         int bestEval = 0;
 
         Outer:
-        while (maxDepth < 8) {
+        while (maxDepth < MAX_DEPTH) {
           bestEval = Integer.MIN_VALUE;
           String bestMove = "right";
 
