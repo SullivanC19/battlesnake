@@ -42,8 +42,6 @@ public class Strategy {
           String bestMove = "right";
 
           for (Direction dir : Direction.values()) {
-              if (!game.canMoveOnto(game.getHeadPos(0).move(dir))) continue;
-
               dirs[0] = dir;
               int eval = evalMinMax(dirs,
                       1,
@@ -177,9 +175,11 @@ public class Strategy {
         int myLength = game.getLength(0);
         int oppLength = game.getLength(1);
 
-        return 20 * (myLength - oppLength)
-        - (pathfinder.canReachTarget() ? distToFood : -50)
-        + 5 * (myAreaControl - oppAreaControl);
+        if (myLength > oppLength) {
+          return 100000 + (myAreaControl - oppAreaControl);
+        } else {
+          return 100 * (myLength - oppLength) - (pathfinder.canReachTarget() ? distToFood : -50);
+        }
     }
 
     private static void startMoveTimer() {
