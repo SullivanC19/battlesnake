@@ -62,6 +62,11 @@ public class Game {
             int snakeIdx = snakeObj.get("id").asText().equals(mySnakeId) ? 0 : 1;
             curState.length[snakeIdx] = snakeObj.get("length").asInt();
             curState.health[snakeIdx] = snakeObj.get("health").asInt();
+
+            JsonNode body = snakeObj.get("body");
+            Position last1 = Position.fromJsonObj(body.get(body.size() - 1));
+            Position last2 = Position.fromJsonObj(body.get(body.size() - 2));
+            curState.foodEaten[snakeIdx] = last1.equals(last2);
         }
 
         states.add(curState);
@@ -164,8 +169,8 @@ public class Game {
                 // remove tail (if food not eaten)
                 Position tail0 = getTailPos(0);
                 Position tail1 = getTailPos(1);
-                snake[tail0.x][tail0.y] = state.foodEaten[0] || state.turn < 2;
-                snake[tail1.x][tail1.y] = state.foodEaten[1] || state.turn < 2;
+                snake[tail0.x][tail0.y] = state.foodEaten[0];
+                snake[tail1.x][tail1.y] = state.foodEaten[1];
 
                 // collision
                 alive[0] = !snake[head0.x][head0.y];
