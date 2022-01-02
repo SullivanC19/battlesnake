@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 public class Strategy {
 
-    private static final long CUTOFF_TIME_ELAPSED = 300;
+    private static final long CUTOFF_TIME_ELAPSED = 400;
     private static final int MAX_DEPTH = 100;
     private static final Logger LOG = LoggerFactory.getLogger(Strategy.class);
 
