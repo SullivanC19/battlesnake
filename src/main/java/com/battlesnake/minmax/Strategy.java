@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 public class Strategy {
 
-    private static final long CUTOFF_TIME_ELAPSED = 300;
+    private static final long CUTOFF_TIME_ELAPSED = 350;
     private static final int MAX_DEPTH = 100;
     private static final Logger LOG = LoggerFactory.getLogger(Strategy.class);
 
@@ -33,7 +33,7 @@ public class Strategy {
         estimatedValueOfPath = new HashMap<>();
         Direction[] dirs = new Direction[game.getNumSnakes()];
 
-        int maxDepth = 4;
+        int maxDepth = 2;
         String move = "right";
         int bestEval = 0;
 
