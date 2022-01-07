@@ -69,6 +69,12 @@ public class Pathfinder {
 
             for (Direction dir : Direction.values()) {
                 Position nextPos = pos.move(dir);
+                if (!floodFill && targeter.isTarget(nextPos)) {
+                    target = nextPos;
+                    distToTarget = dist[nextPos.x][nextPos.y];
+                    break;
+                }
+
                 if (game.canMoveOnto(nextPos)
                         && !inQueue[nextPos.x][nextPos.y]) {
                     toVisit.add(nextPos);
@@ -76,11 +82,6 @@ public class Pathfinder {
                     dist[nextPos.x][nextPos.y] = dist[pos.x][pos.y] + 1;
                     sourceIdx[nextPos.x][nextPos.y] = sourceIdx[pos.x][pos.y];
                     backtrackDir[nextPos.x][nextPos.y] = dir.opposite();
-                    if (!floodFill && targeter.isTarget(nextPos)) {
-                        target = nextPos;
-                        distToTarget = dist[nextPos.x][nextPos.y];
-                        break;
-                    }
                 }
             }
         }

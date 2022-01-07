@@ -107,12 +107,16 @@ public class Game {
     public int getLength(int snakeIdx) {
         return getCurrentState(false).length[snakeIdx];
     }
+    public int getHealth(int snakeIdx) { return getCurrentState(false).health[snakeIdx]; }
     public Position getHeadPos(int snakeIdx) {
         return getCurrentState(false).head[snakeIdx];
     }
     public Position getTailPos(int snakeIdx) {
         int length = getCurrentState(false).length[snakeIdx];
         return states.get(states.size() - length).head[snakeIdx];
+    }
+    public boolean inBounds(Position pos) {
+        return pos.inBounds(width, height);
     }
     public boolean canMoveOnto(Position pos) {
         return pos.inBounds(width, height)

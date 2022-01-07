@@ -159,14 +159,23 @@ public class Strategy {
         // game in progress
 
         pathfinder.setFloodFill(false);
+
         pathfinder.setSource(new Position[] {game.getHeadPos(0)});
+
+        pathfinder.setDest(game.getTailPos(0));
+        pathfinder.execute();
+
+        boolean canReachTail = pathfinder.canReachTarget();
+        int distToTail = pathfinder.getDistToTarget();
+
         pathfinder.setTargeter(new Pathfinder.Targeter() {
             public boolean isTarget(Position pos) {
-                return game.isFood(pos);
+                return game.inBounds(pos) && game.isFood(pos);
             }
         });
         pathfinder.execute();
 
+        boolean canReachFood = pathfinder.canReachTarget();
         int distToFood = pathfinder.getDistToTarget();
 
         pathfinder.setFloodFill(true);
@@ -179,11 +188,26 @@ public class Strategy {
         int myLength = game.getLength(0);
         int oppLength = game.getLength(1);
 
-        //if (myLength > oppLength) {
-          return 100000 + (myAreaControl - oppAreaControl)+(int) Math.signum((float)(myLength - oppLength));
-        //} else {
-        //  return 100 * (myLength - oppLength) - 4 * (pathfinder.canReachTarget() ? distToFood : 0) + myAreaControl;
-        //}
+        int myHealth = game.getHealth(0);
+        int oppHealth = game.getHealth(1);
+
+        // 1. cut off opponents (area control + dist to opp head)
+        // 2. not get cut off (area control + dist to tail?)
+        // 3. not starve (health as heuristic)
+        // 4. potentially have length advantage
+
+//        if (myLength > oppLength) {
+//          return 10000 + (myAreaControl - oppAreaControl);
+//        } else {
+        int tailAreaControl=canReachTail?Math.max(myHealth-distToTail,0):0;
+          return myLength*(11*11+1) - 4 * (pathfinder.canReachTarget() ? distToFood : 11*11) + myAreaControl+tailAreaControl;
+//        }
+
+//        if (myLength > oppLength) {
+//            return 10000 + (myAreaControl - oppAreaControl);
+//        } else {
+//            return 100 * myLength - 4 * (pathfinder.canReachTarget() ? distToFood : 0) + (myAreaControl - oppAreaControl);
+//        }
     }
 
     private static void startMoveTimer() {

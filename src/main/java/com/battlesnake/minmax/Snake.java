@@ -91,7 +91,7 @@ public class Snake {
             Map<String, String> response = new HashMap<>();
             response.put("apiversion",  "1");
             response.put("author",      "SullivanC19");
-            response.put("color",       "#2596be");
+            response.put("color",       "#DEADBE");
             response.put("head",        "smart-caterpillar");
             response.put("tail",        "coffee");
             return response;
