@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 public class Strategy {
 
-    private static final long CUTOFF_TIME_ELAPSED = 350;
+    private static final long CUTOFF_TIME_ELAPSED = 300;
     private static final int MAX_DEPTH = 100;
     private static final Logger LOG = LoggerFactory.getLogger(Strategy.class);
 
@@ -43,15 +43,6 @@ public class Strategy {
           String bestMove = "right";
 
           for (Direction dir : Direction.values()) {
-              if (maxDepth == 80) {
-                  System.out.println(dir);
-                  for (int y = 10; y >= 0; y--) {
-                      for (int x = 0; x <= 10; x++) {
-                          System.out.print(game.canMoveOnto(new Position(x, y)) ? 0 : 1);
-                      }
-                      System.out.println();
-                  }
-              }
 
               if (!game.canMoveOnto(game.getHeadPos(0).move(dir))) continue;
 
@@ -188,11 +179,11 @@ public class Strategy {
         int myLength = game.getLength(0);
         int oppLength = game.getLength(1);
 
-        if (myLength > oppLength) {
-          return 100000 + (myAreaControl - oppAreaControl);
-        } else {
-          return 100 * (myLength - oppLength) - 4 * (pathfinder.canReachTarget() ? distToFood : 0) + myAreaControl;
-        }
+        //if (myLength > oppLength) {
+          return 100000 + (myAreaControl - oppAreaControl)+(int) Math.signum((float)(myLength - oppLength));
+        //} else {
+        //  return 100 * (myLength - oppLength) - 4 * (pathfinder.canReachTarget() ? distToFood : 0) + myAreaControl;
+        //}
     }
 
     private static void startMoveTimer() {
